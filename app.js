@@ -43,10 +43,10 @@ app.post("/webhook", (req, res) => {
   console.log(typeof sender, typeof text);
   // console.log(req.body.events[0])
 
-  if (text === "1" || text === "เปิด" || text === "relay1_on") {
+  if (text === "1" || text === "เปิด" || text === "on") {
     // LED On
     ledOn(sender, text);
-  } else if (text === "0" || text === "ปิด" || text === "relay1_off") {
+  } else if (text === "0" || text === "ปิด" || text === "off") {
     // LED Off
     ledOff(sender, text);
   } else {
