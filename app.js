@@ -1,6 +1,7 @@
 var express = require("express");
 var bodyParser = require("body-parser");
 var request = require("request");
+var axios = require("axios");
 var app = express();
 
 var mqtt = require("mqtt");
@@ -30,28 +31,46 @@ var options = {
   encoding: "utf8",
 };
 
-app.set("port", process.env.PORT || 5000);
+app.set("port", process.env.PORT || 3000);
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-app.post("/webhook", (req, res) => {
-  var text = req.body.events[0].message.text.toLowerCase();
-  var sender = req.body.events[0].source.userId;
-  var replyToken = req.body.events[0].replyToken;
-  console.log(text, sender, replyToken);
-  console.log(typeof sender, typeof text);
-  // console.log(req.body.events[0])
+app.post("/webhook", async (req, res) => {
+  if (typeof req.body.events[0].message != "undefined") {
+    var text = req.body.events[0].message.text.toLowerCase();
+    var sender = req.body.events[0].source.userId;
+    var replyToken = req.body.events[0].replyToken;
+    // console.log(text, sender, replyToken);
+    // console.log(typeof sender, typeof text);
+    // console.log(req.body.events[0])
 
-  if (text === "1" || text === "เปิด" || text === "on") {
-    // LED On
-    ledOn(sender, text);
-  } else if (text === "0" || text === "ปิด" || text === "off") {
-    // LED Off
-    ledOff(sender, text);
-  } else {
-    // Other
-    sendText(sender, text);
+    if (text === "1" || text === "เปิด" || text === "on") {
+      // LED On
+      ledOn(sender, "กรุณาพิมพ์ : on | off | เปิด | ปิด เท่านั้น");
+    } else if (text === "0" || text === "ปิด" || text === "off") {
+      // LED Off
+      ledOff(sender, "กรุณาพิมพ์ : on | off | เปิด | ปิด เท่านั้น");
+    } else {
+      // Other
+      sendText(sender, "กรุณาพิมพ์ : on | off | เปิด | ปิด เท่านั้น");
+    }
+  } else if (typeof req.body.events[0].beacon != "undefined") {
+    // console.log(req.body.events[0]);
+    const userId = req.body.events[0].source.userId;
+    const user = await axios.get(
+      `https://api.line.me/v2/bot/profile/${userId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${CH_ACCESS_TOKEN}`,
+        },
+      }
+    );
+    // console.log(user.data.displayName);
+    sendText(
+      userId,
+      `Hi there, ${user.data.displayName} Now you are in Centos's Area!`
+    );
   }
 
   res.sendStatus(200);
@@ -63,7 +82,7 @@ function sendText(sender, text) {
     messages: [
       {
         type: "text",
-        text: "กรุณาพิมพ์ : on | off | เปิด | ปิด เท่านั้น",
+        text,
       },
     ],
   };
@@ -81,7 +100,7 @@ function sendText(sender, text) {
     function (err, res, body) {
       if (err) console.log("error");
       if (res) console.log("success");
-      if (body) console.log(body);
+      // if (body) console.log(body);
     }
   );
 }
