@@ -11,18 +11,18 @@ const CH_ACCESS_TOKEN =
   "sEpeuexUnE+goreT4BTC0WnsZkNfHDTBQ8GQ2n7yYfyrkJMzXIyph74YmWsReqRmHvjpO4Af1PGo/SQQA+SiWtyPEPc4WemVaJsHPrs8JLtWHTupcjq7/q88u85Dlm76lZ3d8Y5WTwEJJUOHpK/r3AdB04t89/1O/w1cDnyilFU=";
 
 // MQTT Host
-var mqtt_host = "mqtt://driver.cloudmqtt.com";
+var mqtt_host = "mqtt://27.254.140.105";
 
 // MQTT Topic
 var mqtt_topic = "/Boomzaza";
 
 // MQTT Config
 var options = {
-  port: 18672,
+  port: 1883,
   host: mqtt_host,
   clientId: "mqttjs_" + Math.random().toString(16).substr(2, 8),
-  username: "qurygeum",
-  password: "vDKjrZ5FpIHJ",
+  username: "boom",
+  password: "0969163254",
   keepalive: 60,
   reconnectPeriod: 1000,
   protocolId: "MQIsdp",
@@ -37,7 +37,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 app.post("/webhook", async (req, res) => {
-  if (typeof req.body.events[0].message != "undefined") {
+  console.log(req.body.events[0]);
+  if (req.body.events[0].type == "message") {
     var text = req.body.events[0].message.text.toLowerCase();
     var sender = req.body.events[0].source.userId;
     var replyToken = req.body.events[0].replyToken;
@@ -55,8 +56,7 @@ app.post("/webhook", async (req, res) => {
       // Other
       sendText(sender, "กรุณาพิมพ์ : on | off | เปิด | ปิด เท่านั้น");
     }
-  } else if (typeof req.body.events[0].beacon != "undefined") {
-    // console.log(req.body.events[0]);
+  } else if (req.body.events[0].type == "beacon") {
     const userId = req.body.events[0].source.userId;
     const user = await axios.get(
       `https://api.line.me/v2/bot/profile/${userId}`,
@@ -66,11 +66,24 @@ app.post("/webhook", async (req, res) => {
         },
       }
     );
-    // console.log(user.data.displayName);
-    sendText(
-      userId,
-      `Hi there, ${user.data.displayName} Now you are in Centos's Area!`
-    );
+    const client = mqtt.connect(mqtt_host, options);
+
+    if (req.body.events[0].beacon.type == "enter") {
+      client.publish("/beacon-project", "air-on", function () {
+        console.log("Turning the air on!");
+        client.end(); // Close the connection when published
+      });
+      sendText(
+        userId,
+        `Hi there, ${user.data.displayName} Now you are in Centos's Area!`
+      );
+    } else if (req.body.events[0].beacon.type == "leave") {
+      client.publish("/beacon-project", "air-off", function () {
+        console.log("Turning the air off!");
+        client.end(); // Close the connection when published
+      });
+      sendText(userId, `You leave Centos's Area!`);
+    }
   }
 
   res.sendStatus(200);
